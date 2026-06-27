@@ -31,4 +31,17 @@ cp "$SRC_DIR/config" "$DEST/config"
 cp "$VARIANT" "$DEST/shaders/cursor_blaze.glsl"
 
 echo "Applied '$COLOR' lazer to $DEST"
-echo "Reload Ghostty with ⌘+Shift+, to see it."
+
+# Auto-reload: Ghostty reloads its config on SIGUSR2 — no keystroke needed.
+# Find the running GUI process (pgrep first, ps fallback for sandboxed shells).
+PIDS="$(pgrep -x ghostty 2>/dev/null || true)"
+if [[ -z "$PIDS" ]]; then
+  PIDS="$(ps -Ao pid,comm | awk '/Ghostty\.app\/Contents\/MacOS\/ghostty$/{print $1}')"
+fi
+
+if [[ -n "$PIDS" ]]; then
+  for pid in $PIDS; do kill -USR2 "$pid" 2>/dev/null || true; done
+  echo "Reloaded Ghostty (SIGUSR2) — the $COLOR lazer is live."
+else
+  echo "Ghostty not running; it'll pick up the config on next launch."
+fi

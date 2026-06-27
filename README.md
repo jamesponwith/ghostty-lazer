@@ -28,8 +28,10 @@ on the system by copying the chosen color variant into place.
 ```
 
 Each run **backs up your current config first** (see Recovery), copies the repo
-`config` into `~/.config/ghostty`, and installs the chosen variant as
-`shaders/cursor_blaze.glsl`. Reload in-app with `⌘+Shift+,` — no restart needed.
+`config` into `~/.config/ghostty`, installs the chosen variant as
+`shaders/cursor_blaze.glsl`, and **auto-reloads a running Ghostty** by sending it
+`SIGUSR2` — the new color is live immediately, no keystroke or restart needed.
+(If Ghostty isn't running, it picks up the config on next launch.)
 
 ## Backup & recovery
 

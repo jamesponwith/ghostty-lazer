@@ -76,6 +76,10 @@ quick-terminal-position = top
 quick-terminal-animation-duration = 0.12
 keybind = global:cmd+grave_accent=toggle_quick_terminal
 
+# Toggle between tabs with ⌘← / ⌘→.
+keybind = cmd+left=previous_tab
+keybind = cmd+right=next_tab
+
 # Quick split & navigation
 keybind = cmd+d=new_split:right
 keybind = cmd+shift+d=new_split:down

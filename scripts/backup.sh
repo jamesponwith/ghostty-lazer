@@ -13,6 +13,9 @@ fi
 
 TS="$(date +%Y%m%d-%H%M%S)"
 DEST="$DEST_ROOT/$TS"
+# Avoid clobbering a backup from another run in the same second.
+n=1
+while [[ -e "$DEST" ]]; do DEST="$DEST_ROOT/$TS-$n"; ((n++)); done
 mkdir -p "$DEST"
 cp -R "$SRC/." "$DEST/"
 
