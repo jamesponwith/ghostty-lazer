@@ -172,6 +172,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
         float sdfCursor = getSdfRectangle(vu, currentCursor.xy - (currentCursor.zw * offsetFactor), currentCursor.zw * 0.5);
         float sdfTrail = getSdfParallelogram(vuJag, v0, v1, v2, v3);
+        // Taper the bolt to a point at both ends: inflate the SDF (push it
+        // outside) as t approaches 0 or 1, so the width shrinks to nothing.
+        float taper = smoothstep(0.0, 0.18, t) * smoothstep(1.0, 0.82, t);
+        sdfTrail += (1.0 - taper) * cursorSize * 0.6;
 
         newColor = mix(newColor, TRAIL_COLOR_ACCENT, 1.0 - smoothstep(sdfTrail, -0.01, 0.001));
         newColor = mix(newColor, TRAIL_COLOR, antialising(sdfTrail));
