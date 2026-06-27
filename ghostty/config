@@ -66,9 +66,8 @@ confirm-close-surface = true
 
 # ─── Scrollback & bells ──────────────────────────────────────────────────
 scrollback-limit = 10000000
-audio-bell = false
-# A subtle visual flash instead of a beep.
-# (no-op on macOS for now, but harmless)
+# No bell features are enabled by default, so the terminal stays silent.
+# To opt into a sound, use: bell-features = audio (with bell-audio-path).
 
 # ─── Quality of life ─────────────────────────────────────────────────────
 # Quick terminal: a drop-down terminal toggled with a global hotkey.
