@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Apply this repo's Ghostty config to the local system, choosing a lazer color.
-# Usage: ./scripts/apply.sh [red|blue]   (default: blue)
+# Usage: ./scripts/apply.sh [red|blue|lightning]   (default: blue)
 #
 # Backs up the current live config first, then copies the repo config and the
 # chosen color variant into place (as shaders/cursor_blaze.glsl).
@@ -9,8 +9,8 @@ set -euo pipefail
 
 COLOR="${1:-blue}"
 case "$COLOR" in
-  red|blue) ;;
-  *) echo "Unknown color '$COLOR'. Use: red | blue" >&2; exit 1 ;;
+  red|blue|lightning) ;;
+  *) echo "Unknown color '$COLOR'. Use: red | blue | lightning" >&2; exit 1 ;;
 esac
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
