@@ -1,4 +1,5 @@
 // Based on https://gist.github.com/chardskarth/95874c54e29da6b5a36ab7b50ae2d088
+// Lightning variant: the trail is displaced sideways into a jagged bolt.
 float ease(float x) {
     return pow(1.0 - x, 10.0);
 }
@@ -59,6 +60,33 @@ float antialising(float distance) {
     return 1. - smoothstep(0., normalize(vec2(2., 2.), 0.).x, distance);
 }
 
+// --- Lightning: polynomial hash + value noise (no sin/cos), two-octave bolt -
+// Shape knobs (declared before the helpers that use them).
+const float JAG_FREQ = 13.0;    // zig-zags per bolt — higher = more jagged
+const float JAG_AMP = 1.6;      // jag width, in cursor sizes
+const float FLICKER_HZ = 34.0;  // how fast the bolt re-shapes (electric strobe)
+
+float hash11(float p) {
+    p = fract(p * 0.1031);
+    p *= p + 33.33;
+    p *= p + p;
+    return fract(p);
+}
+
+float vnoise(float x) {
+    float i = floor(x);
+    float f = fract(x);
+    float u = f * f * (3.0 - 2.0 * f);
+    return mix(hash11(i), hash11(i + 1.0), u) * 2.0 - 1.0; // [-1, 1]
+}
+
+// Jagged offset along the bolt; seed shifts it so the bolt re-shapes over time.
+float bolt(float t, float seed) {
+    return vnoise(t * JAG_FREQ + seed) * 0.7
+         + vnoise(t * JAG_FREQ * 2.7 + seed * 1.7) * 0.3;
+}
+// --------------------------------------------------------------------------
+
 float determineStartVertexFactor(vec2 a, vec2 b) {
     // Conditions using step
     float condition1 = step(b.x, a.x) * step(a.y, b.y); // a.x < b.x && a.y > b.y
@@ -91,10 +119,10 @@ vec2 getRectangleCenter(vec4 rectangle) {
     return vec2(rectangle.x + (rectangle.z / 2.), rectangle.y - (rectangle.w / 2.));
 }
 
-const vec4 TRAIL_COLOR = vec4(1.0, 0.725, 0.161, 1.0); // yellow
+const vec4 TRAIL_COLOR = vec4(0.4, 0.5, 1.0, 1.0); // electric blue
 const vec4 CURRENT_CURSOR_COLOR = TRAIL_COLOR;
 const vec4 PREVIOUS_CURSOR_COLOR = TRAIL_COLOR;
-const vec4 TRAIL_COLOR_ACCENT = vec4(1.0, 0., 0., 1.0); // red-orange
+const vec4 TRAIL_COLOR_ACCENT = vec4(0.9, 0.95, 1.0, 1.0); // white-hot core
 // Arc mode: trail bends like a lazer arc instead of a straight beam.
 // Toggled to true by apply.sh when you pass AMP_ARC (sed on the installed copy).
 const bool ARC = false;
@@ -155,10 +183,25 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
             alphaModifier = 1.0;
         }
 
+        // Displace the sample point sideways by a jagged amount so the straight
+        // parallelogram reads as a lightning bolt. Anchored at both ends by the
+        // envelope so the bolt still meets the cursors.
+        vec2 axis = (centerCC - centerCP) / lineLength;
+        vec2 perp = vec2(-axis.y, axis.x);
+        float t = clamp(dot(vu - centerCP, axis) / lineLength, 0.0, 1.0);
+        float envelope = 4.0 * t * (1.0 - t); // 0 at ends, 1 at middle (no sin)
+        float seed = floor(iTime * FLICKER_HZ); // re-seed so the bolt strobes
+        float jag = bolt(t, seed) * JAG_AMP * cursorSize * envelope;
+        vec2 vuJag = vu - perp * jag;
+
         float sdfCursor = getSdfRectangle(vu, currentCursor.xy - (currentCursor.zw * offsetFactor), currentCursor.zw * 0.5);
         float sdfTrail = ARC
-            ? sdArcTrail(vu, centerCP, centerCC, ARC_AMP) - currentCursor.w * 0.5
-            : getSdfParallelogram(vu, v0, v1, v2, v3);
+            ? sdArcTrail(vuJag, centerCP, centerCC, ARC_AMP) - currentCursor.w * 0.5
+            : getSdfParallelogram(vuJag, v0, v1, v2, v3);
+        // Taper the bolt to a point at both ends: inflate the SDF (push it
+        // outside) as t approaches 0 or 1, so the width shrinks to nothing.
+        float taper = smoothstep(0.0, 0.18, t) * smoothstep(1.0, 0.82, t);
+        sdfTrail += (1.0 - taper) * cursorSize * 0.6;
 
         newColor = mix(newColor, TRAIL_COLOR_ACCENT, 1.0 - smoothstep(sdfTrail, -0.01, 0.001));
         newColor = mix(newColor, TRAIL_COLOR, antialising(sdfTrail));

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Apply this repo's Ghostty config to the local system, choosing a lazer color.
-# Usage: ./scripts/apply.sh [red|blue]   (default: blue)
+# Usage: ./scripts/apply.sh [red|blue|yellow|lightning] [AMP_ARC]   (default: blue, straight beam)
+# AMP_ARC bends the trail: forward jumps arc up, backward jumps arc down.
 #
 # Backs up the current live config first, then copies the repo config and the
 # chosen color variant into place (as shaders/cursor_blaze.glsl).
@@ -9,8 +10,14 @@ set -euo pipefail
 
 COLOR="${1:-blue}"
 case "$COLOR" in
-  red|blue) ;;
-  *) echo "Unknown color '$COLOR'. Use: red | blue" >&2; exit 1 ;;
+  red|blue|yellow|lightning) ;;
+  *) echo "Unknown color '$COLOR'. Use: red | blue | yellow | lightning" >&2; exit 1 ;;
+esac
+
+MODE="${2:-}"
+case "$MODE" in
+  ""|AMP_ARC) ;;
+  *) echo "Unknown mode '$MODE'. Use: AMP_ARC" >&2; exit 1 ;;
 esac
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -30,7 +37,12 @@ mkdir -p "$DEST/shaders"
 cp "$SRC_DIR/config" "$DEST/config"
 cp "$VARIANT" "$DEST/shaders/cursor_blaze.glsl"
 
-echo "Applied '$COLOR' lazer to $DEST"
+# ponytail: sed the installed copy instead of keeping 4 shader files per shape
+if [[ "$MODE" == "AMP_ARC" ]]; then
+  sed -i '' 's/^const bool ARC = false;/const bool ARC = true;/' "$DEST/shaders/cursor_blaze.glsl"
+fi
+
+echo "Applied '$COLOR' lazer${MODE:+ ($MODE)} to $DEST"
 
 # Auto-reload: Ghostty reloads its config on SIGUSR2 — no keystroke needed.
 # Find the running GUI process (pgrep first, ps fallback for sandboxed shells).

@@ -67,6 +67,26 @@ float determineStartVertexFactor(vec2 a, vec2 b) {
     // If neither condition is met, return 1 (else case)
     return 1.0 - max(condition1, condition2);
 }
+// Distance to a quadratic Bézier from a to b, bulging up on forward jumps
+// (rightward, or straight down a line) and down on backward jumps.
+// ponytail: 16-segment polyline approximation — exact Bézier SDF isn't worth it at terminal scale
+float sdArcTrail(vec2 p, vec2 a, vec2 b, float amp) {
+    vec2 ab = b - a;
+    float dir = abs(ab.x) > 1e-4 ? sign(ab.x) : sign(-ab.y);
+    vec2 ctrl = (a + b) * 0.5 + vec2(0.0, dir * amp * length(ab));
+    float d = 1e6;
+    vec2 prev = a;
+    for (int i = 1; i <= 16; i++) {
+        float t = float(i) / 16.0;
+        vec2 q = mix(mix(a, ctrl, t), mix(ctrl, b, t), t);
+        vec2 e = q - prev;
+        vec2 w = p - prev;
+        d = min(d, length(w - e * clamp(dot(w, e) / dot(e, e), 0.0, 1.0)));
+        prev = q;
+    }
+    return d;
+}
+
 vec2 getRectangleCenter(vec4 rectangle) {
     return vec2(rectangle.x + (rectangle.z / 2.), rectangle.y - (rectangle.w / 2.));
 }
@@ -75,6 +95,10 @@ const vec4 TRAIL_COLOR = vec4(0.235, 0.588, 1.0, 1.0); // azure blue
 const vec4 CURRENT_CURSOR_COLOR = TRAIL_COLOR;
 const vec4 PREVIOUS_CURSOR_COLOR = TRAIL_COLOR;
 const vec4 TRAIL_COLOR_ACCENT = vec4(0.0, 0.85, 1.0, 1.0); // bright cyan
+// Arc mode: trail bends like a lazer arc instead of a straight beam.
+// Toggled to true by apply.sh when you pass AMP_ARC (sed on the installed copy).
+const bool ARC = false;
+const float ARC_AMP = 0.3; // bulge height as a fraction of the jump length
 const float DURATION = .5;
 const float OPACITY = .2;
 // Don't draw trail within that distance * cursor size.
@@ -132,7 +156,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
         }
 
         float sdfCursor = getSdfRectangle(vu, currentCursor.xy - (currentCursor.zw * offsetFactor), currentCursor.zw * 0.5);
-        float sdfTrail = getSdfParallelogram(vu, v0, v1, v2, v3);
+        float sdfTrail = ARC
+            ? sdArcTrail(vu, centerCP, centerCC, ARC_AMP) - currentCursor.w * 0.5
+            : getSdfParallelogram(vu, v0, v1, v2, v3);
 
         newColor = mix(newColor, TRAIL_COLOR_ACCENT, 1.0 - smoothstep(sdfTrail, -0.01, 0.001));
         newColor = mix(newColor, TRAIL_COLOR, antialising(sdfTrail));

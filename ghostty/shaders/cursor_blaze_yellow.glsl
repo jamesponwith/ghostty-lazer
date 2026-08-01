@@ -91,10 +91,10 @@ vec2 getRectangleCenter(vec4 rectangle) {
     return vec2(rectangle.x + (rectangle.z / 2.), rectangle.y - (rectangle.w / 2.));
 }
 
-const vec4 TRAIL_COLOR = vec4(1.0, 0.725, 0.161, 1.0); // yellow
+const vec4 TRAIL_COLOR = vec4(1.0, 0.97, 0.45, 1.0); // light electric lightning yellow
 const vec4 CURRENT_CURSOR_COLOR = TRAIL_COLOR;
 const vec4 PREVIOUS_CURSOR_COLOR = TRAIL_COLOR;
-const vec4 TRAIL_COLOR_ACCENT = vec4(1.0, 0., 0., 1.0); // red-orange
+const vec4 TRAIL_COLOR_ACCENT = vec4(1.0, 1.0, 0.88, 1.0); // white-hot edge
 // Arc mode: trail bends like a lazer arc instead of a straight beam.
 // Toggled to true by apply.sh when you pass AMP_ARC (sed on the installed copy).
 const bool ARC = false;
